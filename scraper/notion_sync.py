@@ -1,5 +1,6 @@
 """
 Pushes new jobs to Notion. Deduplicates by Job URL.
+Now supports AI-enriched fields: AI Score, Summary, Match Score, Why I'm a Fit.
 """
 import os
 from notion_client import Client
@@ -68,7 +69,6 @@ def push_job(database_id: str, job: dict) -> bool:
 
     if job.get("source"):
         source = job["source"]
-        # Normalise source names to match select options
         source_map = {
             "Linkedin": "LinkedIn",
             "linkedin": "LinkedIn",
@@ -82,6 +82,36 @@ def push_job(database_id: str, job: dict) -> bool:
 
     if job.get("posted_date"):
         properties["Job Posted"] = {"date": {"start": job["posted_date"]}}
+
+    # --- AI-enriched fields ---
+    if job.get("ai_score") is not None:
+        properties["AI Score"] = {"number": job["ai_score"]}
+
+    if job.get("ai_summary"):
+        properties["Summary"] = {
+            "rich_text": [{"text": {"content": job["ai_summary"][:2000]}}]
+        }
+
+    if job.get("ai_match_score") is not None:
+        properties["Match Score"] = {"number": job["ai_match_score"]}
+
+    if job.get("ai_why_fit"):
+        properties["Why I'm a Fit"] = {
+            "rich_text": [{"text": {"content": job["ai_why_fit"][:2000]}}]
+        }
+
+    if job.get("ai_key_requirements"):
+        reqs = " | ".join(job["ai_key_requirements"][:10])
+        properties["Key Requirements"] = {
+            "rich_text": [{"text": {"content": reqs[:2000]}}]
+        }
+
+    if job.get("ai_red_flags"):
+        flags = " | ".join(job["ai_red_flags"][:5])
+        if flags:
+            properties["Red Flags"] = {
+                "rich_text": [{"text": {"content": flags[:2000]}}]
+            }
 
     # Remove None date values
     if properties.get("Date Found", {}).get("date") is None:

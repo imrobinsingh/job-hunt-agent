@@ -1,9 +1,11 @@
 """
 One-time setup: creates the Job Tracker database in your Notion page.
 Run once: python setup.py
+
+Includes AI-enriched columns: AI Score, Summary, Match Score, Why I'm a Fit,
+Key Requirements, Red Flags.
 """
 import os
-import json
 import requests
 from dotenv import load_dotenv
 
@@ -20,9 +22,10 @@ HEADERS = {
 
 DATABASE_SCHEMA = {
     "parent": {"type": "page_id", "page_id": PAGE_ID},
-    "icon": {"type": "emoji", "emoji": "📋"},
-    "title": [{"type": "text", "text": {"content": "Job Tracker"}}],
+    "icon": {"type": "emoji", "emoji": "🎯"},
+    "title": [{"type": "text", "text": {"content": "Job Tracker — AI-Powered"}}],
     "properties": {
+        # --- Core fields ---
         "Name": {"title": {}},
         "Position": {
             "select": {
@@ -74,6 +77,10 @@ DATABASE_SCHEMA = {
         },
         "Job URL": {"url": {}},
         "Date Found": {"date": {}},
+        "Job Posted": {"date": {}},
+        "CTC Range": {"rich_text": {}},
+
+        # --- Status & tracking ---
         "Status": {
             "select": {
                 "options": [
@@ -89,13 +96,20 @@ DATABASE_SCHEMA = {
             }
         },
         "Applied Date": {"date": {}},
-        "CTC Range": {"rich_text": {}},
         "Interview Scheduled": {"checkbox": {}},
         "Interview Date": {"date": {}},
         "Interview Time": {"rich_text": {}},
         "Interview Link": {"url": {}},
         "Questions & Answers": {"rich_text": {}},
         "Notes": {"rich_text": {}},
+
+        # --- AI-enriched fields ---
+        "AI Score": {"number": {"format": "number"}},
+        "Match Score": {"number": {"format": "number"}},
+        "Summary": {"rich_text": {}},
+        "Why I'm a Fit": {"rich_text": {}},
+        "Key Requirements": {"rich_text": {}},
+        "Red Flags": {"rich_text": {}},
     },
 }
 
@@ -113,13 +127,13 @@ def create_database():
 
     if resp.status_code == 200:
         db_id = resp.json()["id"]
-        print(f"✅ Database created successfully!")
-        print(f"   Database ID: {db_id}")
-        print(f"\n👉 Add this to your .env file:")
-        print(f"   NOTION_DATABASE_ID={db_id}")
-        print(f"\n👉 Add this as a GitHub Actions secret:")
-        print(f"   Name:  NOTION_DATABASE_ID")
-        print(f"   Value: {db_id}")
+        print("Database created successfully!")
+        print(f"  Database ID: {db_id}")
+        print(f"\n  Add this to your .env file:")
+        print(f"  NOTION_DATABASE_ID={db_id}")
+        print(f"\n  Add these as GitHub Actions secrets:")
+        print(f"  NOTION_DATABASE_ID={db_id}")
+        print(f"  GEMINI_API_KEY=<your free key from https://aistudio.google.com/app/apikey>")
 
         # Auto-write to .env if it exists
         env_path = ".env"
@@ -132,7 +146,7 @@ def create_database():
                 )
                 with open(env_path, "w") as f:
                     f.write(content)
-                print(f"\n✅ .env updated automatically.")
+                print(f"\n  .env updated automatically.")
     else:
         print(f"ERROR {resp.status_code}: {resp.json()}")
 

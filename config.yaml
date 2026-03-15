@@ -1,0 +1,91 @@
+# =============================================================
+# Job Hunt Agent — Configuration
+# =============================================================
+# Customise this file for YOUR job search.
+# The AI uses these settings to score, summarise, and match jobs.
+# =============================================================
+
+# --- What roles are you hunting for? ---
+roles:
+  # Job title MUST contain at least one of these (case-insensitive)
+  required_keywords:
+    - "chief of staff"
+    - "chief-of-staff"
+    - "founder's office"
+    - "founder office"
+    - "founders office"
+    - "head of staff"
+
+  # Job title must NOT contain any of these
+  blocked_keywords:
+    - "intern"
+    - "co-founder"
+    - "co founder"
+    - "cofounder"
+    - "executive assistant"
+    - "analyst"
+    - "fresher"
+    - "entry level"
+    - "volunteer"
+    - "freelance"
+    - "part-time"
+    - "part time"
+    - "equity only"
+    - "equity based"
+    - "student"
+    - "mba intern"
+
+  # How to classify matching titles into position categories
+  position_rules:
+    - match: ["founder's office", "founder office", "founders office"]
+      label: "Founder's Office"
+    - match: ["chief of staff", "chief-of-staff", "head of staff"]
+      label: "Chief of Staff"
+
+# --- Where do you want to work? ---
+locations:
+  preferred:
+    - "India"
+    - "Remote"
+  mapping:
+    "Delhi NCR": ["delhi", "ncr", "gurgaon", "noida", "gurugram"]
+    "Bangalore": ["bangalore", "bengaluru"]
+    "Mumbai": ["mumbai"]
+    "Remote": ["remote", "anywhere", "global"]
+    "Other": []  # catch-all
+
+# --- Your priorities (AI uses these to score relevance) ---
+priorities:
+  - "Series A–C funded startups"
+  - "Direct access to founders/CEO"
+  - "Leadership exposure and strategic work"
+  - "₹30L+ CTC or competitive equity"
+  - "Cross-functional ownership"
+
+# --- Your experience level ---
+experience_years: 6
+
+# --- Scraper sources to enable ---
+scrapers:
+  - linkedin_guest
+  - jobspy
+  - cutshort
+  - remoteok
+  # - iimjobs       # uncomment to enable
+  # - wellfound     # uncomment to enable
+  # - weworkremotely # uncomment to enable
+
+# --- AI settings ---
+ai:
+  enabled: true
+  provider: "gemini"             # gemini (free) — only option for now
+  model: "gemini-2.5-flash"      # free tier: 15 RPM, 1M tokens/day
+  min_relevance_score: 40        # jobs scoring below this are filtered out
+  fetch_job_descriptions: true   # fetch full JD from URL for better analysis
+  rate_limit_seconds: 7          # delay between API calls (gemini-2.5-flash: ~10 RPM free)
+
+# --- Notion settings ---
+notion:
+  status_field: "Status"
+  positive_statuses: ["Applied", "Shortlisted", "Screening", "Interview", "Offer"]
+  negative_statuses: ["Rejected", "Withdrawn"]

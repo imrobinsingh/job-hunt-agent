@@ -1,80 +1,79 @@
 """
-Strict relevance filter for CoS / Founder's Office roles.
-Used by all scrapers to ensure only real, senior, paid roles pass through.
+Relevance filter for job titles.
+Now config-driven (reads from config.yaml) with hardcoded fallback.
+AI scoring happens downstream in ai/pipeline.py — this is the fast pre-filter.
 """
+import yaml
+from pathlib import Path
 
-# Title must contain at least one of these
-REQUIRED_KEYWORDS = [
-    "chief of staff",
-    "chief-of-staff",
-    "founder's office",
-    "founder office",
-    "founders office",
-    "head of staff",
-]
+_config = None
 
-# Title must NOT contain any of these
-BLOCKED_KEYWORDS = [
-    "intern",          # intern, internship
-    "co-founder",
-    "co founder",
-    "cofounder",
-    "technical co",
-    "executive assistant",
-    " ea to ",
-    "mba student",
-    "mba intern",
-    "student",
-    "assistant department",
-    "assistant manager",
-    "department manager",
-    "administrative chief",    # "Administrative Chief of Staff, Office of CHRO"
-    "ceo/founder",
-    "cto/founder",
-    "coo/founder",
-    "/ founder",               # catches "CEO / Founder" patterns
-    "analyst",                 # junior analyst roles
-    "fresher",
-    "entry level",
-    "equity based",
-    "equity only",
-    "volunteer",
-    "freelance",
-    "part-time",
-    "part time",
-]
 
-# Company / role patterns to skip (too junior or wrong function)
-BLOCKED_TITLE_PATTERNS = [
-    "executive assistant",
-    "personal assistant",
-    "office admin",
-    "office manager",
-    "operations intern",
-    "strategy intern",
-]
+def _load_config() -> dict:
+    global _config
+    if _config is None:
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        if config_path.exists():
+            try:
+                _config = yaml.safe_load(config_path.read_text())
+            except Exception:
+                _config = {}
+        else:
+            _config = {}
+    return _config
+
+
+def _get_required_keywords() -> list[str]:
+    config = _load_config()
+    return config.get("roles", {}).get("required_keywords", [
+        "chief of staff",
+        "chief-of-staff",
+        "founder's office",
+        "founder office",
+        "founders office",
+        "head of staff",
+    ])
+
+
+def _get_blocked_keywords() -> list[str]:
+    config = _load_config()
+    return config.get("roles", {}).get("blocked_keywords", [
+        "intern", "co-founder", "co founder", "cofounder",
+        "executive assistant", "analyst", "fresher", "entry level",
+        "volunteer", "freelance", "part-time", "part time",
+        "equity only", "equity based", "student", "mba intern",
+    ])
 
 
 def is_relevant(title: str) -> bool:
     """
-    Returns True only if the title is a genuine CoS / Founder's Office role.
-    Strict: must match a required keyword AND not match any blocked keyword.
+    Returns True only if the title matches required keywords
+    and doesn't match blocked keywords. Config-driven with fallback.
     """
     t = title.lower().strip()
 
-    # Must contain a required keyword
-    if not any(kw in t for kw in REQUIRED_KEYWORDS):
+    required = _get_required_keywords()
+    if not any(kw in t for kw in required):
         return False
 
-    # Must not contain a blocked keyword
-    if any(kw in t for kw in BLOCKED_KEYWORDS):
+    blocked = _get_blocked_keywords()
+    if any(kw in t for kw in blocked):
         return False
 
     return True
 
 
 def classify_position(title: str) -> str:
+    """Classify a job title into a position category using config rules."""
+    config = _load_config()
     t = title.lower()
+
+    position_rules = config.get("roles", {}).get("position_rules", [])
+    for rule in position_rules:
+        if any(kw in t for kw in rule.get("match", [])):
+            return rule.get("label", "Other")
+
+    # Fallback if no config
     if any(k in t for k in ["founder's office", "founder office", "founders office"]):
         return "Founder's Office"
     return "Chief of Staff"
