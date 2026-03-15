@@ -81,7 +81,7 @@ def push_job(database_id: str, job: dict) -> bool:
         properties["CTC Range"] = {"rich_text": [{"text": {"content": job["ctc_range"][:100]}}]}
 
     if job.get("posted_date"):
-        properties["Posted Date"] = {"date": {"start": job["posted_date"]}}
+        properties["Job Posted"] = {"date": {"start": job["posted_date"]}}
 
     # Remove None date values
     if properties.get("Date Found", {}).get("date") is None:

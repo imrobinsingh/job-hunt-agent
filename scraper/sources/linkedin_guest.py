@@ -5,6 +5,7 @@ Catches recent postings sorted by date.
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from scraper.filters import is_relevant, classify_position
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -28,7 +29,7 @@ def fetch() -> list[dict]:
                     "keywords": search["keywords"],
                     "location": search["location"],
                     "start": 0,
-                    "sortBy": "DD",  # most recent first
+                    "sortBy": "DD",
                 },
                 headers=HEADERS,
                 timeout=15,
@@ -44,25 +45,25 @@ def fetch() -> list[dict]:
                 url = link.get("href", "").split("?")[0]
                 if not url or url in seen_urls:
                     continue
-                seen_urls.add(url)
 
                 title_el = card.select_one("h3.base-search-card__title, h3")
                 company_el = card.select_one("h4.base-search-card__subtitle, a[data-tracking-control-name*='company']")
                 location_el = card.select_one("span.job-search-card__location")
+                posted_el = card.select_one("time")
 
-                title = title_el.get_text(strip=True) if title_el else search["keywords"]
+                title = title_el.get_text(strip=True) if title_el else ""
                 company = company_el.get_text(strip=True) if company_el else "Unknown"
                 location_raw = location_el.get_text(strip=True) if location_el else search.get("location", "")
-
-                if not _is_relevant(title):
-                    continue
-
-                posted_el = card.select_one("time")
                 posted_date = posted_el.get("datetime", "")[:10] if posted_el else ""
 
+                # Strict filter — title must be a real CoS/FO role
+                if not title or not is_relevant(title):
+                    continue
+
+                seen_urls.add(url)
                 results.append({
                     "name": f"{company} — {title}",
-                    "position": _classify_position(title),
+                    "position": classify_position(title),
                     "company": company,
                     "location": _map_location(location_raw),
                     "source": "LinkedIn",
@@ -76,17 +77,6 @@ def fetch() -> list[dict]:
             print(f"[linkedin_guest] Error for '{search}': {e}")
 
     return results
-
-
-def _is_relevant(title: str) -> bool:
-    keywords = ["chief of staff", "founder's office", "founder office", "chief-of-staff"]
-    return any(k in title.lower() for k in keywords)
-
-
-def _classify_position(title: str) -> str:
-    if "founder" in title.lower():
-        return "Founder's Office"
-    return "Chief of Staff"
 
 
 def _map_location(loc: str) -> str:
