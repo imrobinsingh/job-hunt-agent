@@ -57,6 +57,12 @@ def _process_job(job: dict, seen_urls: set, results: list):
     if not title or not is_relevant(title):
         return
 
+    # Secondary guard: Cutshort API sometimes returns wrong titles (matches on skills/tags).
+    # The URL slug always reflects the actual job title — validate it too.
+    slug = url.split("/job/")[-1].lower()
+    if not any(kw in slug for kw in ["chief", "founder", "head-of-staff"]):
+        return
+
     seen_urls.add(url)
 
     # Extract company name — handle both dict and string forms
