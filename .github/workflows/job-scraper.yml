@@ -1,0 +1,38 @@
+name: Job Hunt Scraper
+
+on:
+  schedule:
+    # Runs every 3 hours (UTC) — adjust offsets for IST (+5:30)
+    - cron: "30 0 * * *"   # 06:00 IST
+    - cron: "30 3 * * *"   # 09:00 IST
+    - cron: "30 6 * * *"   # 12:00 IST
+    - cron: "30 9 * * *"   # 15:00 IST
+    - cron: "30 12 * * *"  # 18:00 IST
+    - cron: "30 15 * * *"  # 21:00 IST
+    - cron: "30 18 * * *"  # 00:00 IST
+    - cron: "30 21 * * *"  # 03:00 IST
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run job scraper
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python -m scraper.main
